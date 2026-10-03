@@ -1,0 +1,6 @@
+@CodeDocGenerator.Api_HostAddress = http://localhost:5030
+
+GET {{CodeDocGenerator.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

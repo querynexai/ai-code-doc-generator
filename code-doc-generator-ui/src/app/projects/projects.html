@@ -1,0 +1,104 @@
+<div class="page">
+  <header class="page-header">
+    <h1>📚 AI Code Documentation Generator</h1>
+    <p>Analyze a C# project with Roslyn and generate XML documentation + README with AI.</p>
+  </header>
+
+  <div class="analyze-panel">
+    <h2>Analyze a New Project</h2>
+
+    <label>Project Path (.csproj, .sln, or folder)</label>
+    <input
+      type="text"
+      [(ngModel)]="projectPath"
+      placeholder="E:\path\to\YourProject"
+      [disabled]="analyzing()"
+    />
+
+    <div class="options">
+      <label class="checkbox">
+        <input type="checkbox" [(ngModel)]="generateReadme" [disabled]="analyzing()" />
+        Generate README
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" [(ngModel)]="generateXmlDocs" [disabled]="analyzing()" />
+        Generate XML Docs
+      </label>
+      <label class="field-inline">
+        <span>Max members</span>
+        <input
+          type="number"
+          [(ngModel)]="maxMembers"
+          [disabled]="analyzing()"
+          min="1"
+          max="500"
+        />
+      </label>
+    </div>
+
+    <button
+      class="btn btn-primary"
+      (click)="analyze()"
+      [disabled]="analyzing() || !projectPath.trim()"
+    >
+      @if (analyzing()) {
+        <span class="spinner"></span> Analyzing…
+      } @else {
+        ⚡ Analyze Project
+      }
+    </button>
+
+    @if (message()) {
+      <div class="message" [class.error]="isError()">{{ message() }}</div>
+    }
+  </div>
+
+  <h2 class="section-title">Analyzed Projects ({{ projects().length }})</h2>
+
+  @if (loading()) {
+    <p class="empty">Loading…</p>
+  } @else if (projects().length === 0) {
+    <div class="empty-state">
+      <p>No projects analyzed yet.</p>
+      <p class="hint">Paste a path to a .csproj, .sln, or folder above to get started.</p>
+    </div>
+  } @else {
+    <div class="project-grid">
+      @for (p of projects(); track p.projectId) {
+        <a [routerLink]="['/projects', p.projectId]" class="project-card">
+          <div class="card-head">
+            <h3>{{ p.projectName }}</h3>
+            <span class="status" [class]="p.analysisStatus">{{ p.analysisStatus }}</span>
+          </div>
+
+          <p class="meta">
+            {{ p.assemblyName ?? 'Unknown assembly' }} · {{ p.targetFramework ?? '—' }}
+          </p>
+
+          <div class="stats">
+            <div class="stat">
+              <span class="num">{{ p.totalClasses }}</span>
+              <span class="lbl">Classes</span>
+            </div>
+            <div class="stat">
+              <span class="num">{{ p.totalMethods }}</span>
+              <span class="lbl">Methods</span>
+            </div>
+            <div class="stat">
+              <span class="num">{{ p.totalProperties }}</span>
+              <span class="lbl">Props</span>
+            </div>
+          </div>
+
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="progressPercent(p)"></div>
+          </div>
+          <p class="progress-label">
+            {{ p.documentedMembers }}/{{ p.documentedMembers + p.undocumentedMembers }}
+            documented ({{ progressPercent(p) }}%)
+          </p>
+        </a>
+      }
+    </div>
+  }
+</div>

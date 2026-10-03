@@ -1,0 +1,177 @@
+<div class="page">
+  @if (loading()) {
+    <p class="empty">Loading…</p>
+  } @else if (project(); as p) {
+    <a routerLink="/projects" class="back">← Back to projects</a>
+
+    <!-- Header -->
+    <header class="header">
+      <h1>{{ p.projectName }}</h1>
+      <p class="meta">{{ p.assemblyName ?? 'Unknown assembly' }} · {{ p.targetFramework ?? '—' }}</p>
+
+      <div class="stats-row">
+        <div class="stat">
+          <span class="num">{{ p.totalClasses }}</span>
+          <span class="lbl">Classes</span>
+        </div>
+        <div class="stat">
+          <span class="num">{{ p.totalMethods }}</span>
+          <span class="lbl">Methods</span>
+        </div>
+        <div class="stat">
+          <span class="num">{{ p.totalProperties }}</span>
+          <span class="lbl">Properties</span>
+        </div>
+        <div class="stat highlight">
+          <span class="num">{{ docsWithXml() }}</span>
+          <span class="lbl">AI Docs Generated</span>
+        </div>
+        <div class="stat">
+          <span class="num">{{ p.analysisDurationMs ?? 0 }}ms</span>
+          <span class="lbl">Duration</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- README SECTION -->
+    <div class="panel readme-panel">
+      <div class="panel-head">
+        <div class="panel-title">
+          <h2>📄 Generated README</h2>
+          @if (p.readmeContent) {
+            <span class="badge-ok">✓ Available</span>
+          } @else {
+            <span class="badge-missing">Not generated</span>
+          }
+        </div>
+        <div class="panel-actions">
+          @if (p.readmeContent) {
+            <button class="btn-ghost" (click)="downloadReadme()">⬇ Download .md</button>
+            <button class="btn-ghost" (click)="copyToClipboard(p.readmeContent!)">
+              {{ copyMessage() || '📋 Copy' }}
+            </button>
+            <button class="btn-ghost" (click)="showReadme.set(!showReadme())">
+              {{ showReadme() ? 'Hide' : 'Show' }}
+            </button>
+          }
+          <button
+            class="btn-ghost"
+            (click)="regenerateReadme()"
+            [disabled]="regenerating()"
+          >
+            @if (regenerating()) {
+              <span class="spinner-small"></span> Generating…
+            } @else {
+              🔄 {{ p.readmeContent ? 'Regenerate' : 'Generate README' }}
+            }
+          </button>
+        </div>
+      </div>
+
+      @if (regenError()) {
+        <div class="error-box">{{ regenError() }}</div>
+      }
+
+      @if (p.readmeContent) {
+        @if (showReadme()) {
+          <pre class="readme-content">{{ p.readmeContent }}</pre>
+        }
+      } @else {
+        <p class="empty-inline">
+          No README generated for this project. Click "Generate README" above.
+        </p>
+      }
+    </div>
+
+    <!-- XML DOCS SECTION -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">
+          <h2>📝 XML Documentation</h2>
+          <span class="badge-ok">{{ docsWithXml() }} AI-generated</span>
+          @if (docsWithOriginal() > 0) {
+            <span class="badge-info">{{ docsWithOriginal() }} with originals</span>
+          }
+        </div>
+        <div class="panel-actions">
+          @if (docsWithXml() > 0) {
+            <button class="btn-ghost" (click)="downloadAllXml()">⬇ Download all XML</button>
+          }
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <button
+          class="chip"
+          [class.active]="filter() === 'all'"
+          (click)="setFilter('all')"
+        >
+          All ({{ p.docs.length }})
+        </button>
+
+        @for (t of memberTypes(); track t) {
+          <button
+            class="chip"
+            [class.active]="filter() === t"
+            (click)="setFilter(t)"
+          >
+            {{ t }} ({{ countByType(t) }})
+          </button>
+        }
+      </div>
+
+      <!-- Docs list -->
+      @if (filteredDocs().length === 0) {
+        <p class="empty">No docs match this filter.</p>
+      } @else {
+        <div class="docs-list">
+          @for (d of filteredDocs(); track d.docId) {
+            <div class="doc-card">
+              <div class="doc-head">
+                <span class="type-badge" [class]="d.memberType">{{ d.memberType }}</span>
+                <code class="member-name">{{ d.memberName }}</code>
+                @if (d.aiConfidence !== null) {
+                  <span class="confidence" [class]="confidenceClass(d.aiConfidence)">
+                    {{ (d.aiConfidence * 100).toFixed(0) }}%
+                  </span>
+                }
+              </div>
+
+              @if (d.fullyQualifiedName) {
+                <p class="fqn">{{ d.fullyQualifiedName }}</p>
+              }
+
+              @if (d.originalXml) {
+                <div class="doc-section">
+                  <p class="section-label">📌 Original XML</p>
+                  <pre class="xml original">{{ d.originalXml }}</pre>
+                </div>
+              }
+
+              @if (d.generatedXml) {
+                <div class="doc-section">
+                  <p class="section-label">✨ AI-Generated XML</p>
+                  <pre class="xml generated">{{ d.generatedXml }}</pre>
+                </div>
+              } @else {
+                <div class="doc-section">
+                  <p class="section-label">✨ AI-Generated XML</p>
+                  <p class="missing">Not generated</p>
+                </div>
+              }
+
+              @if (d.filePath) {
+                <p class="file-path">
+                  📁 {{ d.filePath }}@if (d.lineNumber) {<span> :{{ d.lineNumber }}</span>}
+                </p>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <p class="empty">Project not found.</p>
+  }
+</div>
